@@ -2,7 +2,7 @@
 use ExtUtils::MakeMaker;
 
 WriteMakefile( 
-	'VERSION' => 100.010301,
+	'VERSION' => 101.121401,
 	'NAME'	  => 'CGI::Out',
 	($] >= 5.005 ?
 	    ('ABSTRACT' => 'Buffer CGI output so that diagnositcs can be given cleanly if needed',

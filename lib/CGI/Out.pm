@@ -9,7 +9,7 @@ require Exporter;
 
 use strict;
 
-use vars qw($out);
+use vars qw($out $mailto);
 
 my $error = 0;
 my @saveA;
@@ -30,7 +30,7 @@ sub error
 	require CGI::BigDeath;
 	bigdeath($pe, $se, "@bomb", $out, 
 		\%e, $query, $pwd, $zero, 
-		\@saveA, $debug);
+		\@saveA, $debug, $mailto);
 }
 
 BEGIN	{
@@ -133,7 +133,7 @@ CGI::Out - buffer output when building CGI programs
 
 	use CGI::Out qw(carpout $out);
 	carpout(\*LOG);
-	$CGI::Out::$out			# is the buffer
+	$CGI::Out::out			# is the buffer
 
 
 =head1 DESCRIPTION

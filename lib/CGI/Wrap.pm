@@ -9,7 +9,7 @@ require Exporter;
 
 use strict;
 
-use vars qw($out);
+use vars qw($out $mailto);
 
 my $error = 0;
 my @saveA;
@@ -35,7 +35,7 @@ BEGIN	{
 	if (defined @CGI::Out::EXPORT) {
 		require CGI::BigDeath;
 		bigdeath('', '', "Cannot combine CGI::Wrap with CGI::Out",
-			\%e, $query, $pwd, $zero, \@saveA, $debug);
+			\%e, $query, $pwd, $zero, \@saveA, $debug, $mailto);
 		exit(1);
 	}
 }
@@ -123,7 +123,7 @@ CGI::Wrap - buffer output when building CGI programs
 			-title=>'A test',
 			-author=>'muir@idiom.com');
 	}
-	$CGI::Out::$out			# is the buffer
+	$CGI::Out::out			# is the buffer
 
 =head1 DESCRIPTION
 

@@ -7,6 +7,8 @@
 # use require to get at it if you have to.
 #
 
+use vars qw($mailserver);
+
 sub bigdeath
 {
 	my ($perlerr, $syserr, $bomb, $out, 
@@ -52,7 +54,7 @@ $cout
 
 
 	require Net::SMTP;
-	my $smtp = Net::SMTP->new('localhost');
+	my $smtp = Net::SMTP->new($mailserver || 'localhost');
 
 	$smtp->mail($mailto);
 	$smtp->to($mailto);
