@@ -1,5 +1,6 @@
 MANIFEST
 Makefile.PL
+CHANGELOG
 README
 lib/CGI/Out.pm
 lib/CGI/Wrap.pm

@@ -5,10 +5,12 @@ package CGI::Wrap;
 require Exporter;
 @ISA = qw(Exporter);
 @EXPORT = qw(out dout flushout savequery run);
+@EXPORT_OK = qw($out);
 
 use strict;
 
-my $out;
+use vars qw($out);
+
 my $error = 0;
 my @saveA;
 my $pwd;
@@ -121,6 +123,7 @@ CGI::Wrap - buffer output when building CGI programs
 			-title=>'A test',
 			-author=>'muir@idiom.com');
 	}
+	$CGI::Out::$out			# is the buffer
 
 =head1 DESCRIPTION
 

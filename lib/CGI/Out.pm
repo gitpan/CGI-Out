@@ -5,11 +5,12 @@ package CGI::Out;
 require Exporter;
 @ISA = qw(Exporter);
 @EXPORT = qw(out dout flushout croak carp confess savequery);
-@EXPORT_OK = qw(carpout);
+@EXPORT_OK = qw(carpout $out);
 
 use strict;
 
-my $out;
+use vars qw($out);
+
 my $error = 0;
 my @saveA;
 my $pwd;
@@ -130,8 +131,10 @@ CGI::Out - buffer output when building CGI programs
 	warn "I'm confused";
 	die  "I'm dying.\n";
 
-	use CGI::Out qw(carpout);
+	use CGI::Out qw(carpout $out);
 	carpout(\*LOG);
+	$CGI::Out::$out			# is the buffer
+
 
 =head1 DESCRIPTION
 
