@@ -29,6 +29,13 @@ BEGIN	{
 	# idiom.com specific feature:
 	$pwd = "$Chroot::has_chrooted$pwd"
 		if defined $Chroot::has_chrooted;
+
+	if (defined @CGI::Out::EXPORT) {
+		require CGI::BigDeath;
+		bigdeath('', '', "Cannot combine CGI::Wrap with CGI::Out",
+			\%e, $query, $pwd, $zero, \@saveA, $debug);
+		exit(1);
+	}
 }
 
 sub savequery

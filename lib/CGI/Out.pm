@@ -20,13 +20,25 @@ my $debug = '';
 
 use Cwd;
 
+sub error
+{
+	my (@bomb) = @_;
+	my $pe = $@;
+	my $se = $!;
+	$error = 1;
+	require CGI::BigDeath;
+	bigdeath($pe, $se, "@bomb", $out, 
+		\%e, $query, $pwd, $zero, 
+		\@saveA, $debug);
+}
+
 BEGIN	{
 	require Carp;
 	require CGI::Carp;
 
 	*warn = \&{CGI::Carp::warn};
 	*carpout = \&{CGI::Carp::carpout};
-	$main::SIG{'__DIE__'}='CGI::Out::fakedie';
+	$main::SIG{'__DIE__'}= \&CGI::Out::fakedie;
 
 	$out = '';
 	@saveA = @ARGV;
@@ -37,6 +49,9 @@ BEGIN	{
 	# idiom.com specific feature:
 	$pwd = "$Chroot::has_chrooted$pwd"
 		if defined $Chroot::has_chrooted;
+
+	&error("Cannot combine CGI::Out and CGI::Wrap")
+		if defined @CGI::Wrap::EXPORT;
 }
 
 sub savequery
@@ -61,18 +76,6 @@ sub flushout
 	$out = '';
 }
 
-sub error
-{
-	my (@bomb) = @_;
-	my $pe = $@;
-	my $se = $!;
-	$error = 1;
-	require CGI::BigDeath;
-	bigdeath($pe, $se, "@bomb", $out, 
-		\%e, $query, $pwd, $zero, 
-		\@saveA, $debug);
-}
-
 sub croak
 {
 	error Carp::shortmess @_;
@@ -87,6 +90,7 @@ sub confess
 
 sub fakedie
 {
+	return if $;
 	delete $main::SIG{'__DIE__'};
 	exit(1) if $error;
 	error Carp::shortmess @_;
