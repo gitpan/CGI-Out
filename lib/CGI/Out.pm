@@ -4,7 +4,7 @@
 package CGI::Out;
 require Exporter;
 @ISA = qw(Exporter);
-@EXPORT = qw(out dout flushout croak carp confess savequery);
+@EXPORT = qw(out croak carp confess savequery);
 @EXPORT_OK = qw(carpout);
 
 use strict;
@@ -16,7 +16,6 @@ my $pwd;
 my $zero;
 my %e;
 my $query;
-my $debug = '';
 
 use Cwd;
 
@@ -26,16 +25,16 @@ BEGIN	{
 
 	*warn = \&{CGI::Carp::warn};
 	*carpout = \&{CGI::Carp::carpout};
-	$main::SIG{'__DIE__'}= \&CGI::Out::fakedie;
+	$main::SIG{'__DIE__'}='CGI::Out::fakedie';
 
 	$out = '';
 	@saveA = @ARGV;
 	$pwd = getcwd();
 	$zero = $0;
-	%e = %ENV;
+	%e = %main::ENV;
 
 	# idiom.com specific feature:
-	$pwd = "$Chroot::has_chrooted$pwd"
+	$pwd = "$Chroot::has_chrooted$pwd" 
 		if defined $Chroot::has_chrooted;
 }
 
@@ -44,33 +43,94 @@ sub savequery
 	($query) = (@_);
 }
 
-sub debug	
-{
-	$debug .= join('',@_);
-	return '';
-}	
-
 sub out	
 {
 	$out .= join('',@_);
-	return '';
-}	
-
-sub flushout
-{
-	$out = '';
 }
 
 sub error
 {
 	my (@bomb) = @_;
+	$error = 1;
 	my $pe = $@;
 	my $se = $!;
-	$error = 1;
-	require CGI::BigDeath;
-	bigdeath($pe, $se, "@bomb", $out, 
-		\%e, $query, $pwd, $zero, 
-		\@saveA, $debug);
+	print <<"";
+Content-type: text/html
+\n
+		<html>
+		<head>
+		<title>Error!</title>
+		</head>
+		<body>
+		The dynamic web page that you just tried to
+		access has failed.  The exact error that it 
+		failed with was:
+		<xmp>
+		@bomb
+		</xmp>
+		In addition the following may be of interest:
+		<xmp>
+		\$\@ = $pe
+		\$! = $se
+		</xmp>
+		There is no need to report this error because 
+		email has been sent about this problem already.
+
+	require Net::SMTP;
+	my $smtp = Net::SMTP->new('localhost');
+	my $mailto = getpwuid($<);
+	$smtp->mail($mailto);
+	$smtp->to($mailto);
+	$smtp->data();
+	$smtp->datasend(<<"");
+To: $mailto
+From: $mailto
+Subject: Perl script $0 bombed
+\n
+Perl script $0 bombed.
+\n
+Bomb code:
+@bomb
+\n
+\$\@ = $pe
+\$! = $se
+\n
+
+	my $qs = '';
+	if (defined $query) {
+		if ($e{'REQUEST_METHOD'} =~ /^P/) {
+			$qs = $query->query_string();
+		}
+	}
+
+	my $e ='';
+	for (keys %e) {
+		my $x = $_;
+		my $y = $e{$x};
+		$x =~ s/'/'"'"'/g;
+		$y =~ s/'/'"'"'/g;
+		$e .= "\\\n\t'$x'='$y'";
+	}
+	for ($qs, @saveA, $zero, $pwd) {
+		s/'/'"'"'/g;
+	}
+	my $e;
+	my $ne;
+
+	my $x = <<"";
+Repeat with:
+\n
+/bin/sh <<'END'
+#!/bin/sh
+cd '$pwd'
+echo '$qs' | env - $e $zero @saveA 
+exit $?
+'END'
+
+	$smtp->datasend($x);
+	$smtp->dataend();
+	$smtp->quit();
+	print "<xmp>$x</xmp></body></html>\n";
 }
 
 sub croak
@@ -111,9 +171,7 @@ CGI::Out - buffer output when building CGI programs
 	use CGI::Out;
 
 	$query = new CGI;
-	savequery $query;		# to reconstruct input
-
-	$CGI::Out::mailto = 'fred';	# override default of $<
+	savequery $query;
 
 	out $query->header();
 	out $query->start_html(
@@ -140,15 +198,13 @@ problem.
 It wraps all of the functions provided by CGI::Carp and Carp.  Do
 not "use" them directly, instead just "use CGI::Out".
 
-Instead of print, use C<out>.
-
 =head1 AUTHOR
 
 David Muir Sharnoff <muir@idiom.com>
 
 =head1 SEE ALSO
 
-Carp, CGI::Carp, CGI, CGI::Wrap
+Carp, CGI::Carp, CGI
 
 =head1 BUGS
 
