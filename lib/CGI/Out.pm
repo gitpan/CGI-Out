@@ -4,8 +4,8 @@
 package CGI::Out;
 require Exporter;
 @ISA = qw(Exporter);
-@EXPORT = qw(out croak carp confess savequery);
-@EXPORT_OK = qw(carpout);
+@EXPORT = qw(out dout flushout croak carp confess savequery);
+@EXPORT_OK = qw(carpot);
 
 use strict;
 
@@ -16,6 +16,7 @@ my $pwd;
 my $zero;
 my %e;
 my $query;
+my $debug = '';
 
 use Cwd;
 
@@ -31,10 +32,10 @@ BEGIN	{
 	@saveA = @ARGV;
 	$pwd = getcwd();
 	$zero = $0;
-	%e = %main::ENV;
+	%e = %ENV;
 
 	# idiom.com specific feature:
-	$pwd = "$Chroot::has_chrooted$pwd" 
+	$pwd = "$Chroot::has_chrooted$pwd"
 		if defined $Chroot::has_chrooted;
 }
 
@@ -43,9 +44,19 @@ sub savequery
 	($query) = (@_);
 }
 
+sub debug	
+{
+	$debug .= join('',@_);
+}	
+
 sub out	
 {
 	$out .= join('',@_);
+}	
+
+sub flushout
+{
+	$out = '';
 }
 
 sub error
@@ -54,6 +65,11 @@ sub error
 	$error = 1;
 	my $pe = $@;
 	my $se = $!;
+
+	my $cout = $out;
+	$cout =~ s/\</&lt;/g;
+	$cout =~ s/\>/&gt;/g;
+
 	print <<"";
 Content-type: text/html
 \n
@@ -75,10 +91,22 @@ Content-type: text/html
 		</xmp>
 		There is no need to report this error because 
 		email has been sent about this problem already.
+		<p>
+		Had this CGI run completion, the following 
+		would have been output (collected so far):
+		<ul>
+		<pre><tt>
+$cout
+		</tt></pre>
+		</ul>
+
 
 	require Net::SMTP;
 	my $smtp = Net::SMTP->new('localhost');
-	my $mailto = getpwuid($<);
+
+	use vars qw($mailto);
+	$mailto = getpwuid($<)
+		unless $mailto;
 	$smtp->mail($mailto);
 	$smtp->to($mailto);
 	$smtp->data();
@@ -94,6 +122,9 @@ Bomb code:
 \n
 \$\@ = $pe
 \$! = $se
+\n
+Debugging info:
+$debug
 \n
 
 	my $qs = '';
@@ -114,10 +145,28 @@ Bomb code:
 	for ($qs, @saveA, $zero, $pwd) {
 		s/'/'"'"'/g;
 	}
-	my $e;
 	my $ne;
 
-	my $x = <<"";
+	my $x = "CGI variables:\n\n";
+
+	my $name;
+	for $name ($query->param()) {
+		my @values = $query->param($name);
+
+		if (@values > 1) {
+			$x .= "\t$name\n";	
+			my $v;
+			for $v (@values) {
+				$x .= display_value($smtp, $v, "\n");
+			}
+		} else {	
+			$x .= "\t" . $name . display_value($smtp, $values[0]);
+		}
+	}
+
+
+	$x .= <<"";
+\n
 Repeat with:
 \n
 /bin/sh <<'END'
@@ -126,11 +175,44 @@ cd '$pwd'
 echo '$qs' | env - $e $zero @saveA 
 exit $?
 'END'
+\n
+
+
 
 	$smtp->datasend($x);
+	$smtp->datasend("\n\noutput so far:\n$out\n");
 	$smtp->dataend();
 	$smtp->quit();
 	print "<xmp>$x</xmp></body></html>\n";
+
+	sub display_value
+	{
+		my($smtp, $value, $nl) = @_;
+		my @lines;
+		my $x = '';
+
+		@lines = split("\n", $value);
+
+		for (@lines) {
+			s/\r$//;
+			s/\r/\\r/g;
+			s/\f/\\f/g;
+			s/([\0-\37\177-\200])/sprintf("\\x%02x",ord($1))/eg;
+		}
+
+		if (@lines > 1) {
+			$smtp->datasend("$nl\t\t---- begin\n");
+			my $line;
+			for $line (@lines) {
+				$x .= "\t$line\n";
+			}
+			$x .= "\t\t----- end\n";
+		} else {
+			$x .= "$nl\t\t'$lines[0]'\n";
+		}
+		return $x;
+	}
+
 }
 
 sub croak
@@ -171,12 +253,16 @@ CGI::Out - buffer output when building CGI programs
 	use CGI::Out;
 
 	$query = new CGI;
-	savequery $query;
+	savequery $query;		# to reconstruct input
+
+	$CGI::Out::mailto = 'fred';	# override default of $<
 
 	out $query->header();
 	out $query->start_html(
 		-title=>'A test',
 		-author=>'muir@idiom.com');
+
+	outf "%3d", 19;			# out sprintf
 
 	croak "We're outta here!";
 	confess "It was my fault: $!";
@@ -197,6 +283,8 @@ problem.
 
 It wraps all of the functions provided by CGI::Carp and Carp.  Do
 not "use" them directly, instead just "use CGI::Out".
+
+Instead of print, use C<out>.  Instead of printf, out C<outf>.
 
 =head1 AUTHOR
 
