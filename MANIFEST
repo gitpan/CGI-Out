@@ -2,3 +2,5 @@ MANIFEST
 Makefile.PL
 README
 lib/CGI/Out.pm
+lib/CGI/Wrap.pm
+lib/CGI/BigDeath.pm
