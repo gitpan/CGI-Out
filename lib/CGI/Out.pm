@@ -59,6 +59,11 @@ sub error
 	$error = 1;
 	my $pe = $@;
 	my $se = $!;
+
+	my $cout = $out;
+	$cout =~ s/\</&lt;/g;
+	$cout =~ s/\>/&gt;/g;
+
 	print <<"";
 Content-type: text/html
 \n
@@ -80,6 +85,15 @@ Content-type: text/html
 		</xmp>
 		There is no need to report this error because 
 		email has been sent about this problem already.
+		<p>
+		Had this CGI run completion, the following 
+		would have been output (collected so far):
+		<ul>
+		<pre><tt>
+$cout
+		</tt></pre>
+		</ul>
+
 
 	require Net::SMTP;
 	my $smtp = Net::SMTP->new('localhost');
@@ -133,8 +147,12 @@ cd '$pwd'
 echo '$qs' | env - $e $zero @saveA 
 exit $?
 'END'
+\n
+
+
 
 	$smtp->datasend($x);
+	$smtp->datasend("\n\noutput so far:\n$out\n");
 	$smtp->dataend();
 	$smtp->quit();
 	print "<xmp>$x</xmp></body></html>\n";
@@ -178,14 +196,16 @@ CGI::Out - buffer output when building CGI programs
 	use CGI::Out;
 
 	$query = new CGI;
-	savequery $query;
+	savequery $query;		# to reconstruct input
+
+	$CGI::Out::mailto = 'fred';	# override default of $<
 
 	out $query->header();
 	out $query->start_html(
 		-title=>'A test',
 		-author=>'muir@idiom.com');
 
-	outf "%3d", 19;
+	outf "%3d", 19;			# out sprintf
 
 	croak "We're outta here!";
 	confess "It was my fault: $!";
