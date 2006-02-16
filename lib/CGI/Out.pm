@@ -9,7 +9,7 @@ require Exporter;
 
 use strict;
 
-use vars qw($out $mailto);
+use vars qw($out $mailto $usedby);
 
 my $error = 0;
 my @saveA;
@@ -51,9 +51,12 @@ BEGIN	{
 	$pwd = "$Chroot::has_chrooted$pwd"
 		if defined $Chroot::has_chrooted;
 
-	&error("Cannot combine CGI::Out and CGI::Wrap")
+	$usedby = join(':',(caller(2))[1,2]);
+
+	&error("Cannot combine CGI::Out ($usedby) and CGI::Wrap ($CGI::Wrap::usedby)")
 		if defined @CGI::Wrap::EXPORT;
 }
+
 
 sub savequery
 {

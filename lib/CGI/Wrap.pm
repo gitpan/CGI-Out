@@ -7,9 +7,11 @@ require Exporter;
 @EXPORT = qw(out dout flushout savequery run);
 @EXPORT_OK = qw($out);
 
+$VERSION = 2004.1023;
+
 use strict;
 
-use vars qw($out $mailto);
+use vars qw($out $mailto $usedby);
 
 my $error = 0;
 my @saveA;
@@ -32,9 +34,11 @@ BEGIN	{
 	$pwd = "$Chroot::has_chrooted$pwd"
 		if defined $Chroot::has_chrooted;
 
+	$usedby = join(':',(caller(2))[1,2]);
+
 	if (defined @CGI::Out::EXPORT) {
 		require CGI::BigDeath;
-		bigdeath('', '', "Cannot combine CGI::Wrap with CGI::Out",
+		bigdeath('', '', "Cannot combine CGI::Wrap ($usedby) with CGI::Out ($CGI::Out::usedby)",
 			\%e, $query, $pwd, $zero, \@saveA, $debug, $mailto);
 		exit(1);
 	}
@@ -88,7 +92,7 @@ sub run
 		require CGI::Carp;
 		bigdeath('see above', $se, $pe, $out, 
 			\%e, $query, $pwd, $zero, 
-			\@saveA, $debug);
+			\@saveA, $debug, $mailto);
 	}
 	print $out;
 	return @r if wantarray;

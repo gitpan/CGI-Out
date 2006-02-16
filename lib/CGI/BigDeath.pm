@@ -15,6 +15,7 @@ sub bigdeath
 		$envr, $query, $pwd, $zero, 
 		$argvr, $debug, $mailto) = @_;
 
+	local $SIG{__DIE__} = undef;
 	my $cout = $out;
 	$cout =~ s/\</&lt;/g;
 	$cout =~ s/\>/&gt;/g;
